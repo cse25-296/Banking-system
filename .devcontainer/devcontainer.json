@@ -1,0 +1,14 @@
+{
+  "name": "Java Codespace",
+  "image": "://microsoft.com",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack"
+      ]
+    }
+  }
+}
