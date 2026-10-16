@@ -40,6 +40,7 @@ public class ChequeAccount extends Account {
 
     @Override
     public BigDecimal calculateMonthlyInterest() {
+        ensureActive();
         return BigDecimal.ZERO;
     }
 }

@@ -17,12 +17,6 @@ public class SavingsAccount extends Account
     }
 
     @Override
-    public void withdraw(BigDecimal amount) {
-        throw new UnsupportedOperationException(
-                "Withdrawals are not allowed from a Savings Account.");
-    }
-
-    @Override
     public BigDecimal calculateMonthlyInterest() {
         ensureActive();
 

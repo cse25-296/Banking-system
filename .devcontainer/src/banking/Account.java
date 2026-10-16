@@ -18,6 +18,11 @@ public abstract class Account {
                 "Account number is required.");
         }
 
+        if (branch == null || branch.isBlank()) {
+            throw new IllegalArgumentException(
+                "Branch is required.");
+        }
+
         if (initialBalance == null
                 || initialBalance.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException(

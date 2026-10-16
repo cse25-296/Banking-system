@@ -6,18 +6,40 @@ import java.time.LocalDateTime;
 
 public class Transaction {
 
-    private String transactionId;
-    private String accountNumber;
-    private String transactionType;
-    private BigDecimal amount;
-    private BigDecimal balanceAfter;
-    private LocalDateTime transactionDate;
+    private final String transactionId;
+    private final String accountNumber;
+    private final String transactionType;
+    private final BigDecimal amount;
+    private final BigDecimal balanceAfter;
+    private final LocalDateTime transactionDate;
 
     public Transaction(String transactionId,
                        String accountNumber,
                        String transactionType,
                        BigDecimal amount,
                        BigDecimal balanceAfter) {
+
+        if (transactionId == null || transactionId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Transaction ID is required.");
+        }
+        if (accountNumber == null || accountNumber.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Account number is required.");
+        }
+        if (transactionType == null || transactionType.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Transaction type is required.");
+        }
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException(
+                    "Transaction amount must be greater than zero.");
+        }
+        if (balanceAfter == null
+                || balanceAfter.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException(
+                    "Balance after transaction cannot be negative.");
+        }
 
         this.transactionId = transactionId;
         this.accountNumber = accountNumber;
