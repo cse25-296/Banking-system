@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<VBox prefHeight="500.0" prefWidth="540.0" spacing="14.0"
+      xmlns="http://javafx.com" xmlns:fx="http://javafx.com">
+    <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
+    </padding>
+
+    <Label text="Bank Staff Portal - Open Customer Account">
+        <font>
+            <Font name="System Bold" size="18.0"/>
+        </font>
+    </Label>
+
+    <Separator/>
+
+    <GridPane hgap="12.0" vgap="10.0">
+        <Label text="First Name:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+        <TextField fx:id="firstNameField" prefWidth="240.0" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+
+        <Label text="Surname:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+        <TextField fx:id="surnameField" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+        <Label text="Customer Address:" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+        <TextField fx:id="addressField" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+
+        <Label text="Account Type:" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+        <ComboBox fx:id="accountTypeBox" prefWidth="240.0" promptText="Select Account Type" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+
+        <Label text="Branch:" GridPane.columnIndex="0" GridPane.rowIndex="4"/>
+        <TextField fx:id="branchField" GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+
+        <Label text="Initial Deposit (BWP):" GridPane.columnIndex="0" GridPane.rowIndex="5"/>
+        <TextField fx:id="initialDepositField" promptText="Min BWP 500.00 for Investment" GridPane.columnIndex="1" GridPane.rowIndex="5"/>
+
+        <Label text="Employer Company:" GridPane.columnIndex="0" GridPane.rowIndex="6"/>
+        <TextField fx:id="companyNameField" promptText="Required for Cheque Account" GridPane.columnIndex="1" GridPane.rowIndex="6"/>
+
+        <Label text="Company Address:" GridPane.columnIndex="0" GridPane.rowIndex="7"/>
+        <TextField fx:id="companyAddressField" promptText="Required for Cheque Account" GridPane.columnIndex="1" GridPane.rowIndex="7"/>
+    </GridPane>
+
+    <HBox spacing="12.0">
+        <Button fx:id="openAccountButton" mnemonicParsing="false" text="Create Customer &amp; Open Account"/>
+        <Button fx:id="logoutButton" mnemonicParsing="false" text="Logout"/>
+    </HBox>
+
+    <Label fx:id="statusLabel" textFill="GREEN"/>
+</VBox>

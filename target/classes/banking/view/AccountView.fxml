@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<VBox prefHeight="520.0" prefWidth="640.0" spacing="14.0"
+      xmlns="http://javafx.com" xmlns:fx="http://javafx.com">
+    <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
+    </padding>
+
+    <HBox alignment="CENTER_LEFT" spacing="20.0">
+        <Label fx:id="welcomeLabel" text="Customer Account Dashboard">
+            <font>
+                <Font name="System Bold" size="18.0"/>
+            </font>
+        </Label>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="logoutButton" mnemonicParsing="false" text="Logout"/>
+    </HBox>
+
+    <Separator/>
+
+    <GridPane hgap="12.0" vgap="10.0">
+        <Label text="Select Account:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+        <ComboBox fx:id="accountSelector" prefWidth="240.0" promptText="Choose Account" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+
+        <Label text="Account Type:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+        <Label fx:id="accountTypeLabel" text="-" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+        <Label text="Branch:" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+        <Label fx:id="branchLabel" text="-" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+
+        <Label text="Current Balance:" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+        <Label fx:id="balanceLabel" text="BWP 0.00" GridPane.columnIndex="1" GridPane.rowIndex="3">
+            <font>
+                <Font name="System Bold" size="14.0"/>
+            </font>
+        </Label>
+    </GridPane>
+
+    <Separator/>
+
+    <Label text="Perform Transaction:"/>
+    <HBox spacing="10.0">
+        <TextField fx:id="amountField" prefWidth="160.0" promptText="Enter amount (BWP)"/>
+        <Button fx:id="depositButton" mnemonicParsing="false" text="Deposit"/>
+        <Button fx:id="withdrawButton" mnemonicParsing="false" text="Withdraw"/>
+        <Button fx:id="payInterestButton" mnemonicParsing="false" text="Apply Monthly Interest"/>
+    </HBox>
+
+    <Label fx:id="statusLabel" textFill="BLUE"/>
+
+    <Label text="Transaction History:"/>
+    <TextArea fx:id="transactionHistoryArea" editable="false" prefHeight="160.0" promptText="Recent transactions will appear here..."/>
+</VBox>
