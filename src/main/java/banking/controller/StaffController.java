@@ -1,6 +1,9 @@
 package banking.controller;
 
 import banking.*;
+import banking.dao.AccountDAO;
+import banking.dao.CustomerDAO;
+import banking.dao.TransactionDAO;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -11,6 +14,7 @@ import javafx.scene.control.*;
 import javafx.stage.Stage;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 public class StaffController {
@@ -30,6 +34,10 @@ public class StaffController {
     @FXML private ComboBox<String> statusComboBox;
     @FXML private Label manageStatusLabel;
     @FXML private TextArea reportOutputArea;
+
+    private final CustomerDAO customerDAO = new CustomerDAO();
+    private final AccountDAO accountDAO = new AccountDAO();
+    private final TransactionDAO transactionDAO = new TransactionDAO();
 
     @FXML
     public void initialize() {
@@ -83,14 +91,22 @@ public class StaffController {
                 customer = new RegularCustomer(custId, firstName, surname, address, "N/A", "N/A", idNum, "N/A");
             }
 
-            customer.addAccount(newAccount);
-            BankDataStore.addCustomer(customer);
+            // Save customer, account, and opening deposit transaction to SQLite
+            customerDAO.saveCustomer(customer);
+            accountDAO.saveAccount(newAccount, custId);
+            if (deposit.compareTo(BigDecimal.ZERO) > 0) {
+                String txId = "TX-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+                transactionDAO.saveTransaction(new Transaction(txId, accNum, "OPENING_DEPOSIT", deposit, deposit));
+            }
 
-            statusLabel.setText("Created " + category + " (" + custId + ") with " + type + " (" + accNum + ")!");
+            statusLabel.setText("Saved to DB: " + category + " (" + custId + ") with " + type + " (" + accNum + ")!");
         } catch (NumberFormatException e) {
             statusLabel.setText("Please enter a valid numeric initial deposit.");
         } catch (IllegalArgumentException e) {
             statusLabel.setText(e.getMessage());
+        } catch (Exception e) {
+            statusLabel.setText("Database error: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -98,71 +114,81 @@ public class StaffController {
     public void handleUpdateAccountStatus() {
         String accNum = manageAccountField.getText().trim();
         String newStatus = statusComboBox.getValue();
-        Account acc = BankDataStore.findAccountByNumber(accNum);
-        if (acc == null) {
-            manageStatusLabel.setText("Account '" + accNum + "' not found.");
-            return;
+        try {
+            Account acc = accountDAO.findByAccountNumber(accNum);
+            if (acc == null) {
+                manageStatusLabel.setText("Account '" + accNum + "' not found in database.");
+                return;
+            }
+            accountDAO.updateStatus(acc.getAccountNumber(), newStatus);
+            manageStatusLabel.setText("Database updated: " + acc.getAccountNumber() + " is now " + newStatus + ".");
+        } catch (Exception e) {
+            manageStatusLabel.setText("Database error: " + e.getMessage());
         }
-        acc.setStatus(newStatus);
-        manageStatusLabel.setText("Account " + acc.getAccountNumber() + " status updated to " + newStatus + ".");
     }
 
     @FXML
     public void handleGenerateCustomerReport() {
-        StringBuilder sb = new StringBuilder("=== CUSTOMER & ACCOUNT AUDIT REPORT ===\n\n");
-        for (Customer c : BankDataStore.getCustomers()) {
-            sb.append(String.format("Customer: %s %s [%s] (%s)%n",
-                    c.getFirstName(), c.getSurname(), c.getCustomerId(), c.getClass().getSimpleName()));
-            for (Account acc : c.getAccounts()) {
-                sb.append(String.format("   -> %s | %s | Branch: %s | Status: %s | Balance: BWP %s%n",
-                        acc.getAccountNumber(),
-                        acc.getClass().getSimpleName(),
-                        acc.getBranch(),
-                        acc.getStatus(),
-                        acc.getBalance().toPlainString()));
+        try {
+            StringBuilder sb = new StringBuilder("=== CUSTOMER & ACCOUNT AUDIT REPORT (FROM DATABASE) ===\n\n");
+            for (Customer c : customerDAO.findAllCustomers()) {
+                sb.append(String.format("Customer: %s %s [%s] (%s)%n",
+                        c.getFirstName(), c.getSurname(), c.getCustomerId(), c.getClass().getSimpleName()));
+                for (Account acc : c.getAccounts()) {
+                    sb.append(String.format("   -> %s | %s | Branch: %s | Status: %s | Balance: BWP %s%n",
+                            acc.getAccountNumber(),
+                            acc.getClass().getSimpleName(),
+                            acc.getBranch(),
+                            acc.getStatus(),
+                            acc.getBalance().toPlainString()));
+                }
+                sb.append("\n");
             }
-            sb.append("\n");
+            reportOutputArea.setText(sb.toString());
+        } catch (Exception e) {
+            reportOutputArea.setText("Error generating customer report: " + e.getMessage());
         }
-        reportOutputArea.setText(sb.toString());
     }
 
     @FXML
     public void handleGenerateTransactionReport() {
-        StringBuilder sb = new StringBuilder("=== SYSTEM TRANSACTION AUDIT REPORT ===\n\n");
-        if (BankDataStore.getAllTransactions().isEmpty()) {
-            sb.append("No transactions have been processed in this session yet.\n");
-        } else {
-            for (Transaction t : BankDataStore.getAllTransactions()) {
-                sb.append(String.format("[%s] %s | Account: %s | Type: %s | Amount: BWP %s | Bal After: BWP %s%n",
-                        t.getTransactionDate().toLocalDate(),
-                        t.getTransactionId(),
-                        t.getAccountNumber(),
-                        t.getTransactionType(),
-                        t.getAmount().toPlainString(),
-                        t.getBalanceAfter().toPlainString()));
+        try {
+            StringBuilder sb = new StringBuilder("=== SYSTEM TRANSACTION AUDIT REPORT (FROM DATABASE) ===\n\n");
+            List<String> lines = transactionDAO.getAllFormattedTransactions();
+            if (lines.isEmpty()) {
+                sb.append("No transactions recorded in database yet.\n");
+            } else {
+                sb.append(String.join("\n", lines));
             }
+            reportOutputArea.setText(sb.toString());
+        } catch (Exception e) {
+            reportOutputArea.setText("Error generating transaction report: " + e.getMessage());
         }
-        reportOutputArea.setText(sb.toString());
     }
 
     @FXML
     public void handleApplyAllMonthlyInterest() {
-        int count = 0;
-        for (Customer c : BankDataStore.getCustomers()) {
-            for (Account acc : c.getAccounts()) {
-                if ("ACTIVE".equals(acc.getStatus()) && acc instanceof InterestBearing) {
-                    BigDecimal interest = acc.calculateMonthlyInterest();
-                    if (interest.compareTo(BigDecimal.ZERO) > 0) {
-                        acc.deposit(interest);
-                        String txId = "TX-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-                        BankDataStore.addTransaction(new Transaction(txId, acc.getAccountNumber(), "MONTHLY_INTEREST", interest, acc.getBalance()));
-                        count++;
+        try {
+            int count = 0;
+            for (Customer c : customerDAO.findAllCustomers()) {
+                for (Account acc : c.getAccounts()) {
+                    if ("ACTIVE".equals(acc.getStatus()) && acc instanceof InterestBearing) {
+                        BigDecimal interest = acc.calculateMonthlyInterest();
+                        if (interest.compareTo(BigDecimal.ZERO) > 0) {
+                            acc.deposit(interest);
+                            accountDAO.updateBalance(acc.getAccountNumber(), acc.getBalance());
+                            String txId = "TX-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+                            transactionDAO.saveTransaction(new Transaction(txId, acc.getAccountNumber(), "MONTHLY_INTEREST", interest, acc.getBalance()));
+                            count++;
+                        }
                     }
                 }
             }
+            manageStatusLabel.setText("Applied & saved monthly interest to " + count + " active accounts.");
+            handleGenerateCustomerReport();
+        } catch (Exception e) {
+            manageStatusLabel.setText("Error applying interest: " + e.getMessage());
         }
-        manageStatusLabel.setText("Applied monthly interest to " + count + " eligible active accounts.");
-        handleGenerateCustomerReport();
     }
 
     @FXML

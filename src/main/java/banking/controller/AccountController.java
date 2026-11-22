@@ -1,6 +1,8 @@
 package banking.controller;
 
 import banking.*;
+import banking.dao.AccountDAO;
+import banking.dao.TransactionDAO;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -25,6 +27,9 @@ public class AccountController {
     @FXML private TextField targetAccountField;
     @FXML private Label statusLabel;
     @FXML private TextArea transactionHistoryArea;
+
+    private final AccountDAO accountDAO = new AccountDAO();
+    private final TransactionDAO transactionDAO = new TransactionDAO();
 
     private Customer currentCustomer;
     private List<Account> accounts;
@@ -64,21 +69,16 @@ public class AccountController {
     }
 
     private void refreshTransactionHistory(String accountNumber) {
-        List<Transaction> history = BankDataStore.getTransactionsForAccount(accountNumber);
-        if (history.isEmpty()) {
-            transactionHistoryArea.setText("No transactions recorded yet for " + accountNumber + ".");
-            return;
+        try {
+            List<String> history = transactionDAO.getFormattedHistoryForAccount(accountNumber);
+            if (history.isEmpty()) {
+                transactionHistoryArea.setText("No transactions recorded yet for " + accountNumber + ".");
+            } else {
+                transactionHistoryArea.setText(String.join("\n", history));
+            }
+        } catch (Exception e) {
+            transactionHistoryArea.setText("Error loading transaction history: " + e.getMessage());
         }
-        StringBuilder sb = new StringBuilder();
-        for (Transaction t : history) {
-            sb.append(String.format("[%s] %s: BWP %s | Balance After: BWP %s (ID: %s)%n",
-                    t.getTransactionDate().toLocalDate(),
-                    t.getTransactionType(),
-                    t.getAmount().toPlainString(),
-                    t.getBalanceAfter().toPlainString(),
-                    t.getTransactionId()));
-        }
-        transactionHistoryArea.setText(sb.toString());
     }
 
     private Account getSelectedAccount() {
@@ -96,7 +96,10 @@ public class AccountController {
         try {
             BigDecimal amount = new BigDecimal(amountField.getText().trim());
             acc.deposit(amount);
+
+            accountDAO.updateBalance(acc.getAccountNumber(), acc.getBalance());
             recordTx(acc.getAccountNumber(), "DEPOSIT", amount, acc.getBalance());
+
             updateAccountDetails();
             statusLabel.setText("Deposited BWP " + amount.toPlainString() + " successfully.");
             amountField.clear();
@@ -104,6 +107,8 @@ public class AccountController {
             statusLabel.setText("Please enter a valid numeric amount.");
         } catch (IllegalArgumentException | IllegalStateException e) {
             statusLabel.setText(e.getMessage());
+        } catch (Exception e) {
+            statusLabel.setText("Database error: " + e.getMessage());
         }
     }
 
@@ -118,7 +123,10 @@ public class AccountController {
         try {
             BigDecimal amount = new BigDecimal(amountField.getText().trim());
             acc.withdraw(amount);
+
+            accountDAO.updateBalance(acc.getAccountNumber(), acc.getBalance());
             recordTx(acc.getAccountNumber(), "WITHDRAWAL", amount, acc.getBalance());
+
             updateAccountDetails();
             statusLabel.setText("Withdrew BWP " + amount.toPlainString() + " successfully.");
             amountField.clear();
@@ -126,6 +134,8 @@ public class AccountController {
             statusLabel.setText("Please enter a valid numeric amount.");
         } catch (IllegalArgumentException | IllegalStateException e) {
             statusLabel.setText(e.getMessage());
+        } catch (Exception e) {
+            statusLabel.setText("Database error: " + e.getMessage());
         }
     }
 
@@ -142,22 +152,33 @@ public class AccountController {
             statusLabel.setText("Enter a target account number to transfer funds.");
             return;
         }
-        Account target = BankDataStore.findAccountByNumber(targetNum);
-        if (target == null) {
-            statusLabel.setText("Target account '" + targetNum + "' was not found.");
-            return;
-        }
-        if (target.getAccountNumber().equalsIgnoreCase(source.getAccountNumber())) {
-            statusLabel.setText("Cannot transfer funds to the same account.");
-            return;
-        }
         try {
+            Account target = accountDAO.findByAccountNumber(targetNum);
+            if (target == null) {
+                statusLabel.setText("Target account '" + targetNum + "' was not found.");
+                return;
+            }
+            if (target.getAccountNumber().equalsIgnoreCase(source.getAccountNumber())) {
+                statusLabel.setText("Cannot transfer funds to the same account.");
+                return;
+            }
+
             BigDecimal amount = new BigDecimal(amountField.getText().trim());
             source.withdraw(amount);
             target.deposit(amount);
 
+            // Persist both updated balances and both transaction logs in SQLite
+            accountDAO.updateBalance(source.getAccountNumber(), source.getBalance());
+            accountDAO.updateBalance(target.getAccountNumber(), target.getBalance());
             recordTx(source.getAccountNumber(), "TRANSFER_OUT -> " + target.getAccountNumber(), amount, source.getBalance());
             recordTx(target.getAccountNumber(), "TRANSFER_IN <- " + source.getAccountNumber(), amount, target.getBalance());
+
+            // Keep in-memory list synced if target belongs to the same logged-in customer
+            for (Account localAcc : accounts) {
+                if (localAcc.getAccountNumber().equalsIgnoreCase(target.getAccountNumber())) {
+                    localAcc.deposit(amount);
+                }
+            }
 
             updateAccountDetails();
             statusLabel.setText("Transferred BWP " + amount.toPlainString() + " to " + target.getAccountNumber() + ".");
@@ -167,6 +188,8 @@ public class AccountController {
             statusLabel.setText("Please enter a valid numeric transfer amount.");
         } catch (IllegalArgumentException | IllegalStateException e) {
             statusLabel.setText(e.getMessage());
+        } catch (Exception e) {
+            statusLabel.setText("Database error: " + e.getMessage());
         }
     }
 
@@ -178,7 +201,10 @@ public class AccountController {
             BigDecimal interest = acc.calculateMonthlyInterest();
             if (interest.compareTo(BigDecimal.ZERO) > 0) {
                 acc.deposit(interest);
+
+                accountDAO.updateBalance(acc.getAccountNumber(), acc.getBalance());
                 recordTx(acc.getAccountNumber(), "INTEREST", interest, acc.getBalance());
+
                 updateAccountDetails();
                 statusLabel.setText("Monthly interest of BWP " + interest.toPlainString() + " applied.");
             } else {
@@ -186,12 +212,14 @@ public class AccountController {
             }
         } catch (IllegalStateException e) {
             statusLabel.setText(e.getMessage());
+        } catch (Exception e) {
+            statusLabel.setText("Database error: " + e.getMessage());
         }
     }
 
-    private void recordTx(String accNum, String type, BigDecimal amount, BigDecimal balAfter) {
+    private void recordTx(String accNum, String type, BigDecimal amount, BigDecimal balAfter) throws Exception {
         String txId = "TX-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-        BankDataStore.addTransaction(new Transaction(txId, accNum, type, amount, balAfter));
+        transactionDAO.saveTransaction(new Transaction(txId, accNum, type, amount, balAfter));
     }
 
     @FXML

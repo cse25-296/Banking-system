@@ -2,6 +2,7 @@ package banking.controller;
 
 import banking.BankStaff;
 import banking.Customer;
+import banking.dao.CustomerDAO;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -16,6 +17,8 @@ public class LoginController {
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
     @FXML private Label messageLabel;
+
+    private final CustomerDAO customerDAO = new CustomerDAO();
 
     @FXML
     public void initialize() {
@@ -36,12 +39,7 @@ public class LoginController {
 
         try {
             if ("Bank Staff".equals(role)) {
-                BankStaff matchedStaff = BankDataStore.getStaffMembers().stream()
-                        .filter(s -> s.getStaffId().equalsIgnoreCase(userInput)
-                                || s.getFirstName().equalsIgnoreCase(userInput))
-                        .findFirst()
-                        .orElse(null);
-
+                BankStaff matchedStaff = customerDAO.findStaffByIdOrFirstName(userInput);
                 if (matchedStaff != null && "1234".equals(password)) {
                     BankDataStore.setLoggedInStaff(matchedStaff);
                     switchScene(event, "/banking/view/StaffView.fxml", "Bank Staff Portal");
@@ -49,12 +47,7 @@ public class LoginController {
                     messageLabel.setText("Invalid staff login (try STF-001 or Kabo / 1234).");
                 }
             } else {
-                Customer matchedCustomer = BankDataStore.getCustomers().stream()
-                        .filter(c -> c.getCustomerId().equalsIgnoreCase(userInput)
-                                || c.getFirstName().equalsIgnoreCase(userInput))
-                        .findFirst()
-                        .orElse(null);
-
+                Customer matchedCustomer = customerDAO.findByIdOrFirstName(userInput);
                 if (matchedCustomer != null && "1234".equals(password)) {
                     BankDataStore.setLoggedInCustomer(matchedCustomer);
                     switchScene(event, "/banking/view/AccountView.fxml", "Customer Dashboard");
@@ -63,7 +56,7 @@ public class LoginController {
                 }
             }
         } catch (Exception e) {
-            messageLabel.setText("Error loading screen: " + e.getMessage());
+            messageLabel.setText("Database error: " + e.getMessage());
             e.printStackTrace();
         }
     }
