@@ -1,0 +1,10 @@
+classpath:/home/vscode/.m2/repository/org/openjfx/javafx-controls/21.0.2/javafx-controls-21.0.2.jar	306:1705439751000
+classpath:/home/vscode/.m2/repository/org/openjfx/javafx-controls/21.0.2/javafx-controls-21.0.2-linux.jar	2585170:1705439755000
+classpath:/home/vscode/.m2/repository/org/openjfx/javafx-graphics/21.0.2/javafx-graphics-21.0.2.jar	306:1705439767000
+classpath:/home/vscode/.m2/repository/org/openjfx/javafx-graphics/21.0.2/javafx-graphics-21.0.2-linux.jar	4696341:1705439769000
+classpath:/home/vscode/.m2/repository/org/openjfx/javafx-base/21.0.2/javafx-base-21.0.2.jar	302:1705439743000
+classpath:/home/vscode/.m2/repository/org/openjfx/javafx-base/21.0.2/javafx-base-21.0.2-linux.jar	753975:1705439748000
+classpath:/home/vscode/.m2/repository/org/openjfx/javafx-fxml/21.0.2/javafx-fxml-21.0.2.jar	302:1705439759000
+classpath:/home/vscode/.m2/repository/org/openjfx/javafx-fxml/21.0.2/javafx-fxml-21.0.2-linux.jar	130176:1705439761000
+classpath:/home/vscode/.m2/repository/org/xerial/sqlite-jdbc/3.45.1.0/sqlite-jdbc-3.45.1.0.jar	13501708:1706671925000
+classpath:/home/vscode/.m2/repository/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar	41125:1644327230000
